@@ -37,8 +37,10 @@
 # Version : v0.2
 #
 # == Changelog
-# 16-02-2016 : Added Graphite section to be able to log to Graylog
+# 15-02-2016 : Added Graphite section to be able to log to Graylog
 #              and Graphite at once.
+# 16-02-2016 : Catch error 503 when NOAA doesn't serve the file we need
+#              and retry a minute later.
 #
 #
 import urllib2
@@ -82,9 +84,14 @@ def getSpaceWeather(url):
   try:
     spaceWeatherRequest = urllib2.urlopen(spaceWeatherURL)
   except urllib2.URLError, (error):
-    print ("Error opening %s:%s" % (spaceWeatherURL,error) )
-    exit(99)
-
+    # Website times out at times, when encountering a 503, try again in a minute...
+    if error.code == 503:
+      print ("Error opening %s:%s" % (spaceWeatherURL,error.code) )
+      time.sleep(60)
+      getSpaceWeather(spaceWeatherURL)
+    else:
+      print ("Error opening %s:%s" % (spaceWeatherURL,error.code) )
+      exit(99)
 
   weatherLine    = {}
   weatherElement = {}
